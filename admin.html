@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex"><title>JEANZITY Orders</title>
+<style>
+:root{--bg:#F4EFE5;--ink:#292C28;--line:rgba(41,44,40,.18);--olive:#5E6243;--tan:#B8956B}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,sans-serif}
+main{max-width:980px;margin:0 auto;padding:20px}h1{font:500 1.8rem Georgia,serif;margin:0}
+input,select,textarea,button{font:inherit;min-height:44px;padding:8px 10px;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:2px}
+button{cursor:pointer;background:var(--olive);color:#fff;border-color:var(--olive)}button.g{background:#fff;color:var(--ink)}
+.bar{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}.bar input{flex:1;min-width:160px}
+.card{background:#fff;border:1px solid var(--line);padding:16px;margin-bottom:12px}
+.top{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}.id{font-weight:700}.muted{color:#5a5d57;font-size:.9rem}
+dl{display:grid;grid-template-columns:max-content 1fr;gap:4px 14px;margin:12px 0}dt{color:#5a5d57}dd{margin:0;word-break:break-word}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.row textarea{flex:1;min-width:200px;min-height:44px}#msg{min-height:1.4em;color:#a3281f}
+.login{display:grid;gap:10px;max-width:360px;margin-top:20px}
+</style></head><body><main>
+<div class="top"><h1>JEANZITY Orders</h1><div class="row"><button class="g" id="csv" hidden>Download CSV</button><button class="g" id="out" hidden>Log out</button></div></div>
+<form id="login" class="login"><label for="em">Admin email</label><input id="em" type="email" autocomplete="username" required><label for="pw">Password</label><input id="pw" type="password" autocomplete="current-password" required><button>Log in</button></form>
+<div id="msg" role="status"></div>
+<section id="app" hidden><div class="bar"><input id="q" type="search" placeholder="Search ID, name, phone, TrxID, city"><select id="st"></select><button class="g" id="reload">Refresh</button></div><div id="count" class="muted"></div><div id="list"></div></section>
+</main>
+<script src="config.js"></script>
+<script>
+const $=i=>document.getElementById(i);const U=(JZ.supabaseUrl||"").replace(/\/$/,""),K=JZ.supabaseAnonKey||"";
+const STAT=["awaiting_verification","paid","shipped","delivered","cancelled","payment_problem"];
+const L={awaiting_verification:"Awaiting verification",paid:"Paid (verified)",shipped:"Shipped",delivered:"Delivered",cancelled:"Cancelled",payment_problem:"Payment problem"};
+let token=sessionStorage.getItem("jz_t"),orders=[];
+const el=(t,txt,c)=>{const e=document.createElement(t);if(txt!=null)e.textContent=txt;if(c)e.className=c;return e};
+const when=s=>new Date(s).toLocaleString("en-GB",{timeZone:"Asia/Dhaka",dateStyle:"medium",timeStyle:"short"});
+const tk=n=>"৳"+Number(n).toLocaleString("en-US");
+const H=()=>({apikey:K,Authorization:"Bearer "+token,"Content-Type":"application/json"});
+function show(on){$("login").hidden=on;$("app").hidden=!on;$("out").hidden=!on;$("csv").hidden=!on}
+function bad(){token=null;sessionStorage.removeItem("jz_t");show(false)}
+async function load(){
+ if(!U||!K){$("msg").textContent="config.js is not filled in yet.";return}
+ if(!token){show(false);return}
+ const r=await fetch(U+"/rest/v1/orders?select=*&order=created_at.desc&limit=1000",{headers:H()});
+ if(r.status===401||r.status===403){bad();$("msg").textContent="Please log in again.";return}
+ if(!r.ok){$("msg").textContent="Could not load orders.";return}
+ orders=await r.json();show(true);$("msg").textContent="";draw()}
+function draw(){
+ const q=$("q").value.trim().toLowerCase(),st=$("st").value;
+ const rows=orders.filter(o=>(!st||o.status===st)&&(!q||[o.id,o.name,o.phone,o.trx_id,o.city].join(" ").toLowerCase().includes(q)));
+ $("count").textContent=rows.length+" order(s)";const list=$("list");list.replaceChildren();
+ rows.forEach(o=>{const c=el("div",null,"card"),t=el("div",null,"top");t.append(el("span",o.id,"id"),el("span",when(o.created_at),"muted"));c.append(t);
+  const dl=el("dl");[["Status",L[o.status]||o.status],["Name",o.name],["Phone",o.phone],["Address",o.address+", "+o.city],["Email",o.email||"-"],["Quantity",o.quantity],["Total",tk(o.total)+" ("+tk(o.unit_price)+" × "+o.quantity+" + "+tk(o.delivery_charge)+" delivery)"],["Payment",o.method+" from "+o.paid_from],["TrxID",o.trx_id],["Customer note",o.notes||"-"]].forEach(([k,v])=>dl.append(el("dt",k),el("dd",v)));c.append(dl);
+  const r=el("div",null,"row"),sel=el("select");STAT.forEach(s=>sel.append(new Option(L[s],s,false,s===o.status)));
+  const nt=el("textarea");nt.value=o.admin_notes||"";nt.placeholder="Your private note";nt.setAttribute("aria-label","Private note");
+  const sv=el("button","Save");sv.onclick=async()=>{sv.disabled=true;try{
+   const r2=await fetch(U+"/rest/v1/orders?id=eq."+encodeURIComponent(o.id),{method:"PATCH",headers:{...H(),Prefer:"return=representation"},body:JSON.stringify({status:sel.value,admin_notes:nt.value,updated_at:new Date().toISOString()})});
+   if(r2.status===401){bad();return}const d=await r2.json().catch(()=>[]);
+   if(!r2.ok||!d.length)throw new Error("Not saved. Check you are logged in as the owner.");
+   Object.assign(o,d[0]);sv.textContent="Saved";setTimeout(()=>sv.textContent="Save",1200)}catch(e){$("msg").textContent=e.message}sv.disabled=false};
+  r.append(sel,nt,sv);c.append(r);list.append(c)})}
+$("st").append(new Option("All statuses",""));STAT.forEach(s=>$("st").append(new Option(L[s],s)));
+$("login").onsubmit=async e=>{e.preventDefault();$("msg").textContent="";
+ try{const r=await fetch(U+"/auth/v1/token?grant_type=password",{method:"POST",headers:{apikey:K,"Content-Type":"application/json"},body:JSON.stringify({email:$("em").value.trim(),password:$("pw").value})});
+  const d=await r.json().catch(()=>({}));if(!r.ok||!d.access_token)throw new Error("Wrong email or password.");
+  token=d.access_token;sessionStorage.setItem("jz_t",token);$("pw").value="";load()}catch(er){$("msg").textContent=er.message}};
+$("out").onclick=()=>{bad();orders=[]};$("reload").onclick=load;$("st").onchange=draw;$("q").oninput=draw;
+const cell=v=>{let s=String(v??"");if(/^[=+\-@\t\r]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"'};
+$("csv").onclick=()=>{if(!orders.length)return;const cols=Object.keys(orders[0]);const csv=[cols.join(",")].concat(orders.map(o=>cols.map(c=>cell(o[c])).join(","))).join("\n");
+ const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download="jeanzity-orders.csv";a.click()};
+load();
+</script></body></html>
