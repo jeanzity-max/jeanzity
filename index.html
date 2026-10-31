@@ -99,9 +99,9 @@ footer ul{list-style:none;padding:0;margin:0}footer li{margin-bottom:8px}footer 
 <script>
 const CONFIG = {
   announcement: "",            // e.g. "Now delivering across Bangladesh". Leave "" to hide the bar.
-  priceBDT: 650,               // offer price in taka. null = "Price to be confirmed", checkout stays off.
-  compareAtBDT: 1290,          // regular price, shown crossed out. null = hide.
-  deliveryChargeBDT: 100,      // delivery charge in taka. null = not set, checkout stays off.
+  priceBDT: 490,               // offer price in taka. null = "Price to be confirmed", checkout stays off.
+  compareAtBDT: 790,          // regular price, shown crossed out. null = hide.
+  deliveryChargeBDT: 130,      // delivery charge in taka. null = not set, checkout stays off.
   orderEndpoint: (window.JZ && JZ.supabaseUrl && JZ.supabaseAnonKey) ? JZ.supabaseUrl.replace(/\/$/,"") + "/rest/v1/rpc/place_order" : "",           // Your backend order URL (see notes). "" = orders cannot be submitted yet.
   contact: { phone: "", email: "", facebook: "", instagram: "", messenger: "https://m.me/1216648951537318" },
   payment: { number: "01629183352", methods: ["bKash", "Nagad"] },   // customers Send Money here, then enter the transaction ID  // full links for Facebook/Instagram

@@ -47,8 +47,8 @@ create or replace function public.place_order(
 ) returns json
 language plpgsql security definer set search_path = public as $$
 declare
-  c_price    constant int := 650;   -- offer price in taka
-  c_delivery constant int := 100;   -- delivery charge in taka
+  c_price    constant int := 490;   -- offer price in taka
+  c_delivery constant int := 130;   -- delivery charge in taka
   v_name text    := left(btrim(coalesce(p_name,'')), 80);
   v_phone text   := regexp_replace(coalesce(p_phone,''),    '[[:space:]-]', '', 'g');
   v_paid text    := regexp_replace(coalesce(p_paid_from,''), '[[:space:]-]', '', 'g');
