@@ -311,7 +311,7 @@ $("form").addEventListener("submit",async e=>{e.preventDefault();if(busy)return;
  const ord={id:"JZ-"+new Date().toISOString().slice(0,10).replace(/-/g,"")+"-"+Math.random().toString(36).slice(2,6).toUpperCase(),time:new Date().toISOString(),status:"Awaiting payment check",name:v("name"),phone:v("phone"),email:v("email"),address:v("addr"),city:v("city"),quantity:q,unitPrice:C.priceBDT,delivery:C.deliveryChargeBDT,total:C.priceBDT*q+C.deliveryChargeBDT,method:$("method").value,paidFrom:v("sender"),trxId:v("trx"),notes:v("notes")};
  if(C.orderEndpoint){
   busy=true;$("submit").disabled=true;show("Placing your order…");
-  try{const r=await fetch(C.orderEndpoint,{method:"POST",headers:{"Content-Type":"application/json",apikey:JZ.supabaseAnonKey,Authorization:"Bearer "+JZ.supabaseAnonKey},body:JSON.stringify({p_name:ord.name,p_phone:ord.phone,p_email:ord.email,p_address:ord.address,p_city:ord.city,p_quantity:ord.quantity,p_method:ord.method,p_paid_from:ord.paidFrom,p_trx_id:ord.trxId,p_notes:ord.notes})});
+  try{const r=await fetch(C.orderEndpoint,{method:"POST",headers:Object.assign({"Content-Type":"application/json",apikey:JZ.supabaseAnonKey},/^eyJ/.test(JZ.supabaseAnonKey)?{Authorization:"Bearer "+JZ.supabaseAnonKey}:{}),body:JSON.stringify({p_name:ord.name,p_phone:ord.phone,p_email:ord.email,p_address:ord.address,p_city:ord.city,p_quantity:ord.quantity,p_method:ord.method,p_paid_from:ord.paidFrom,p_trx_id:ord.trxId,p_notes:ord.notes})});
    const d=await r.json().catch(()=>({}));
    if(!r.ok||!d.confirmed)throw new Error(d.message||"The server did not confirm the order.");
    show("Your order was received. Order ID: "+(d.reference||ord.id)+". We will confirm it after verifying your payment.");
